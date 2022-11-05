@@ -1,0 +1,11 @@
+task: {
+    id: "",
+    title: "",
+    type: "",
+    list: "",
+    steps: {
+        1: "",
+    },
+    date_created: "",
+    is_important: true,
+}
