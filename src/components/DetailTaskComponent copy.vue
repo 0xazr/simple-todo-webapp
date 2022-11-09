@@ -7,13 +7,13 @@
             <div class="w-full bg-neutral-700 rounded-sm  px-4 pt-4">
                 <div class="flex items-center">
                     <div class="block mt-1">
-                        <input @click="Task.toggleTaskDone(coll, list_id, id)" type="checkbox" class="w-7 h-7 accent-neutral-300 bg-neutral-700 rounded-full text-neutral-800 focus:ring-0" :checked="this.Task.tasks.find(task => task.id === this.id).is_done">
+                        <input @click="Task.toggleTaskDone(id)" type="checkbox" class="w-7 h-7 accent-neutral-300 bg-neutral-700 rounded-full text-neutral-800 focus:ring-0" :checked="this.Task.tasks.find(task => task.id === this.id).is_done">
                     </div>
                     <div class="w-full ml-1 mr-8">
-                        <input type="text" v-model="Task.detail_task.data.title" class="w-full bg-neutral-700 border-0 focus:ring-0" :class="{'line-through': this.Task.tasks.find(task => task.id === this.id).is_done}">
+                        <input @keyup.enter="Task.updateTaskTitle(coll, list_id, id)" type="text" v-model="Task.detail_task.data.title" class="w-full bg-neutral-700 border-0 focus:ring-0" :class="{'line-through': this.Task.tasks.find(task => task.id === this.id).is_done}">
                     </div>
                     <div class="absolute right-9">
-                        <button type="submit" @click="Task.toggleTaskImportant(coll, list_id, id)">
+                        <button type="submit" @click="Task.toggleTaskImportant(id)">
                             <span :class="Task.detail_task.data.is_important ?'material-symbols-sharp' : 'material-symbols-outlined'">star</span>
                         </button>
                     </div>
@@ -21,13 +21,13 @@
                 <div v-for="(step, index) in Task.detail_task.data.steps" :key="index">
                     <div class="flex items-center">
                         <div class="block ml-[0.2rem]">
-                            <input @click="Task.toggleStepDone(coll, list_id, id, index)" type="checkbox" class="w-5 h-5 accent-neutral-300 bg-neutral-700 rounded-full text-neutral-800 focus:ring-0" :checked="step.is_done">
+                            <input @click="Task.toggleStepDone(id, index)" type="checkbox" class="w-5 h-5 accent-neutral-300 bg-neutral-700 rounded-full text-neutral-800 focus:ring-0" :checked="step.is_done">
                         </div>
                         <div class="mx-1 border-b-[1px] w-full mr-7">
                             <input type="text" :value="step.title" class="w-full bg-neutral-700 border-0 focus:ring-0 text-sm    " :class="{'line-through': step.is_done}">
                         </div>
                         <div class="absolute right-9 mt-5">
-                            <button type="submit" @click="Task.removeStep(coll, list_id, id, index)">
+                            <button type="submit" @click="Task.removeStep(id, index)">
                                 <span class="material-symbols-outlined text-lg">
                                     delete
                                 </span>
@@ -40,7 +40,7 @@
                     <span class="material-symbols-outlined">add</span>
                 </div>
                 <div class="ml-3 h-11 w-full">
-                    <input @keyup.enter="Task.addStepTask(coll, list_id, id, Task.step)" type="text" class="bg-neutral-700 focus:outline-none w-full border-0 focus:ring-0" placeholder="Add a step" v-model="Task.step">
+                    <input @keyup.enter="Task.addStepTask(id, Task.step)" type="text" class="bg-neutral-700 focus:outline-none w-full border-0 focus:ring-0" placeholder="Add a step" v-model="Task.step">
                 </div>
                 </div>
             </div>

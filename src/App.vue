@@ -21,8 +21,8 @@
       <hr class="mt-5 border-neutral-700">
       <div class="mt-1 text-neutral-100">
         <RouterLink to="/" class="w-full group">
-          <div class="relative p-1 m-1 hover:bg-neutral-700 group-focus:bg-neutral-700 rounded-md grid grid-cols-6 gap-4 cursor-pointer select-none">
-            <div class="absolute h-9 w-1 bg-blue-500 rounded-full left-0 top-[7px] hidden group-focus:block"></div>
+          <div class="relative p-1 m-1 hover:bg-neutral-700 group-focus:bg-neutral-700 rounded-md grid grid-cols-6 gap-4 cursor-pointer select-none" :class="[this.$route.path === '/' ? 'bg-neutral-700' : '']">
+            <div class="absolute h-9 w-1 bg-blue-500 rounded-full left-0 top-[7px]" :class="[this.$route.path === '/' ? 'block' : 'hidden']"></div>
             <div class="flex items-center justify-center h-10">
               <span class="material-symbols-outlined">wb_sunny</span>
             </div>
@@ -32,8 +32,8 @@
           </div>
         </RouterLink>
         <RouterLink to="/important" class="w-full group">
-        <div class="relative p-1 m-1 hover:bg-neutral-700 group-focus:bg-neutral-700 rounded-md grid grid-cols-6 gap-4 cursor-pointer select-none">
-            <div class="absolute h-9 w-1 bg-blue-500 rounded-full left-0 top-[7px] hidden group-focus:block"></div>
+        <div class="relative p-1 m-1 hover:bg-neutral-700 group-focus:bg-neutral-700 rounded-md grid grid-cols-6 gap-4 cursor-pointer select-none" :class="[this.$route.path === '/important' ? 'bg-neutral-700' : '']">
+            <div class="absolute h-9 w-1 bg-blue-500 rounded-full left-0 top-[7px]" :class="[this.$route.path === '/important' ? 'block' : 'hidden']"></div>
             <div class="flex items-center justify-center h-10">
               <span class="material-symbols-outlined">star</span>
             </div>
@@ -54,8 +54,8 @@
           </div>
         </button> -->
         <RouterLink to="/tasks" class="w-full group">
-          <div class="relative p-1 m-1 hover:bg-neutral-700 group-focus:bg-neutral-700 rounded-md grid grid-cols-6 gap-4 cursor-pointer select-none">
-            <div class="absolute h-9 w-1 bg-blue-500 rounded-full left-0 top-[7px] hidden group-focus:block"></div>
+          <div class="relative p-1 m-1 hover:bg-neutral-700 group-focus:bg-neutral-700 rounded-md grid grid-cols-6 gap-4 cursor-pointer select-none" :class="[this.$route.path === '/tasks' ? 'bg-neutral-700' : '']">
+            <div class="absolute h-9 w-1 bg-blue-500 rounded-full left-0 top-[7px]"  :class="[this.$route.path === '/tasks' ? 'block' : 'hidden']"></div>
               <div class="flex items-center justify-center h-10">
                 <span class="material-symbols-outlined">home</span>
               </div>
@@ -78,7 +78,7 @@
         <div class="p-2 rounded-md cursor-pointer">
           <div class="flex items-center w-full">
             <div>
-              <input type="text" class="w-[14rem] bg-neutral-800 border-0 focus:ring-0" placeholder="New List" v-model="Task.new_list.title">
+              <input @keyup.enter="Task.newList()" type="text" class="w-[14rem] bg-neutral-800 border-0 focus:ring-0" placeholder="New List" v-model="Task.new_list.title">
             </div>
             <div class="mt-1">
               <span @click="Task.newList()" class="material-symbols-outlined hover:bg-neutral-700 rounded-md">add</span>

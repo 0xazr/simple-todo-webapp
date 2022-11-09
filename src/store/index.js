@@ -46,6 +46,7 @@ export const useTask = defineStore({
             data: {}
         },
         step: "",
+        steps: [],
         notes: "",
         search: "",
     }),
@@ -84,7 +85,6 @@ export const useTask = defineStore({
             });
         },
         // End //
-
 
         async pushTask(coll, id=null) {
             if(coll == "general-task") {
@@ -150,6 +150,39 @@ export const useTask = defineStore({
             });
             this.new_list.title = "";
         },
+        updateTaskTitle(id) {
+            console.log('updateTaskTitle');
+            if (this.tasks.find(task => task.id === id)) {
+                updateDoc(doc(db, "general-task", id), {
+                    title: this.detail_task.data.title,
+                });
+            } else {
+                this.lists.filter(list => list.tasks.find(task => task.id === id)).forEach((list) => { 
+                    let task = list.tasks.find(task => task.id === id);
+                    task.title = this.detail_task.data.title;
+                    updateDoc(doc(db, "custom-list", list.id), {
+                        tasks: list.tasks,
+                    });
+                });
+            }
+        },
+        async updateStepTitle(id, index, step) {
+            if (this.tasks.find(task => task.id === id)) {
+                let task = this.tasks.find(task => task.id === id);
+                task.steps[index].title = step;
+                await updateDoc(doc(db, "general-task", id), {
+                    steps: task.steps,
+                });
+            } else {
+                this.lists.filter(list => list.tasks.find(task => task.id === id)).forEach((list) => { 
+                    let tasks = list.tasks;
+                    tasks.find(task => task.id === id).steps[index].title = step;
+                    updateDoc(doc(db, "custom-list", list.id), {
+                        tasks: tasks
+                    });
+                });
+            }
+        },
         getLists() {
             onSnapshot(collection(db, "custom-list"), (querySnapshot) => {
                 this.lists = [];
@@ -183,8 +216,8 @@ export const useTask = defineStore({
             });
             this.closeDetailTask();
         },
-        addStepTask(coll, list_id, id, step) {
-            if (coll == "general-task") {
+        addStepTask(id, step) {
+            if (this.tasks.find(task => task.id === id)) {
                 let task = this.tasks.find(task => task.id === id);
                 task.steps.push({
                     title: step,
@@ -195,20 +228,21 @@ export const useTask = defineStore({
                 });
                 this.step = "";
             } else {
-                let list = this.lists.find(list => list.id === list_id);
-                let task = list.tasks.find(task => task.id === id);
-                task.steps.push({
-                    title: step,
-                    is_done: false,
+                this.lists.filter(list => list.tasks.find(task => task.id === id)).forEach((list) => { 
+                    let task = list.tasks.find(task => task.id === id);
+                    task.steps.push({
+                        title: step,
+                        is_done: false,
+                    });
+                    updateDoc(doc(db, "custom-list", list.id), {
+                        tasks: list.tasks,
+                    });
+                    this.step = "";
                 });
-                updateDoc(doc(db, "custom-list", list_id), {
-                    tasks: list.tasks,
-                });
-                this.step = "";
             }
         },
-        async toggleTaskDone(coll, list_id, id) {
-            if (coll == "general-task") {
+        async toggleTaskDone(id) {
+            if (this.tasks.find(task => task.id === id)) {
                 let task = this.tasks.find(task => task.id === id);
                 await updateDoc(doc(db, "general-task", id), {
                     is_done: !task.is_done,
@@ -220,69 +254,73 @@ export const useTask = defineStore({
                     });
                 })
             } else {
-                console.log(coll, list_id, id);
-                let list = this.lists.find(list => list.id === list_id);
-                await updateDoc(doc(db, "custom-list", list_id), {
-                    tasks: list.tasks.map((task) => {
-                        if(task.id == id) {
-                            task.is_done = !task.is_done;
-                            task.steps.forEach((step, index) => {
-                                task.steps[index].is_done = !task.is_done;
-                            })
-                        }
-                        return task;
-                    })
+                this.lists.filter(list => list.tasks.find(task => task.id === id)).forEach((list) => { 
+                    updateDoc(doc(db, "custom-list", list.id), {
+                        tasks: list.tasks.map((task) => {
+                            if(task.id == id) {
+                                task.is_done = !task.is_done;
+                                task.steps.forEach((step, index) => {
+                                    task.steps[index].is_done = task.is_done;
+                                })
+                            }
+                            return task;
+                        })
+                    });
                 });
             }
         },
-        async toggleTaskImportant(coll, list_id, id) {
-            if (coll == "general-task") {
+        async toggleTaskImportant(id) {
+            if (this.tasks.find(task => task.id === id)) {
                 let task = this.tasks.find(task => task.id === id);
                 await updateDoc(doc(db, "general-task", id), {
                     is_important: !task.is_important,
                 });
             } else {
-                let list = this.lists.find(list => list.id === list_id);
-                await updateDoc(doc(db, "custom-list", list_id), {
-                    tasks: list.tasks.map((task) => {
-                        if(task.id == id) {
-                            task.is_important = !task.is_important;
-                        }
-                        return task;
-                    })
+                this.lists.filter(list => list.tasks.find(task => task.id === id)).forEach((list) => { 
+                    updateDoc(doc(db, "custom-list", list.id), {
+                        tasks: list.tasks.map((task) => {
+                            if(task.id == id) {
+                                task.is_important = !task.is_important;
+                            }
+                            return task;
+                        })
+                    });
                 });
             }
         },
-        async toggleStepDone(coll, list_id, id, index) {
-            if (coll == "general-task") {
+        async toggleStepDone(id, index) {
+            if (this.tasks.find(task => task.id === id)) {
                 let task = this.tasks.find(task => task.id === id);
                 task.steps[index].is_done = !task.steps[index].is_done;
                 await updateDoc(doc(db, "general-task", id), {
                     steps: task.steps,
                 });
             } else {
-                let list = this.lists.find(list => list.id === list_id);
-                let tasks = list.tasks;
-                tasks.find(task => task.id === id).steps[index].is_done = !tasks.find(task => task.id === id).steps[index].is_done;
-                await updateDoc(doc(db, "custom-list", list_id), {
-                    tasks: tasks
+                this.lists.filter(list => list.tasks.find(task => task.id === id)).forEach((list) => { 
+                    let tasks = list.tasks;
+                    tasks.find(task => task.id === id).steps[index].is_done = !tasks.find(task => task.id === id).steps[index].is_done;
+                    updateDoc(doc(db, "custom-list", list.id), {
+                        tasks: tasks
+                    });
                 });
             }
         },
-        async removeStep(coll, list_id, id, index) {
-            if (coll == "general-task") {
+        async removeStep(id, index) {
+            if (this.tasks.find(task => task.id === id)) {
                 let task = this.tasks.find(task => task.id === id);
                 task.steps.splice(index, 1);
                 await updateDoc(doc(db, "general-task", id), {
                     steps: task.steps,
                 });
             } else {
-                let list = this.lists.find(list => list.id === list_id);
-                let tasks = list.tasks;
-                tasks.find(task => task.id === id).steps.splice(index, 1);
-                await updateDoc(doc(db, "custom-list", list_id), {
-                    tasks: tasks
+                this.lists.filter(list => list.tasks.find(task => task.id === id)).forEach((list) => { 
+                    let tasks = list.tasks;
+                    tasks.find(task => task.id === id).steps.splice(index, 1);
+                    updateDoc(doc(db, "custom-list", list.id), {
+                        tasks: tasks
+                    });
                 });
+                
             }
         },
         // async deleteAllTasks(coll = "general-task", list_id=null) {
@@ -305,7 +343,7 @@ export const useTask = defineStore({
                 this.detail_task.show_task = false;
                 this.detail_task.data = {};
             } else {
-                this.lists.forEach((list) => {
+                this.lists.filter(list => list.tasks.find(task => task.id === id)).forEach((list) => { 
                     let task_index = list.tasks.findIndex(task => task.id === id);
                     list.tasks.splice(task_index, 1);
                     console.log(list.tasks);
