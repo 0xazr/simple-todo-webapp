@@ -23,6 +23,11 @@
             <div v-for="(task, index) in Task.tasks" :key="index">
                 <TaskComponent coll="general-task" :list_id="null" :task="task" v-if="!task.is_done && task.is_important" />
             </div>
+            <div v-for="list in Task.lists">
+                <div v-for="task in list.tasks">
+                    <TaskComponent coll="custom-list" :list_id="list.id" :task="task" v-if="!task.is_done && task.is_important" />
+                </div>
+            </div>
             <div v-if="Task.tasks.length > 0" class="mt-4 w-[9.5rem] px-3 py-2 bg-neutral-700 bg-opacity-70 rounded-lg flex font-semibold">
                 <span class="material-symbols-sharp mr-1 mt-[1px]">
                     expand_more
@@ -31,6 +36,11 @@
             </div>
             <div v-for="(task, index) in Task.tasks" :key="index">
                 <TaskComponent coll="general-task" :list_id="null" :task="task" v-if="task.is_done && task.is_important" />
+            </div>
+            <div v-for="list in Task.lists">
+                <div v-for="task in list.tasks">
+                    <TaskComponent coll="custom-list" :list_id="list.id" :task="task" v-if="task.is_done && task.is_important" />
+                </div>
             </div>
         </div>
         <AddTask coll="general-task" id="important-task"/>
@@ -60,6 +70,7 @@ export default {
     },
     created() {
         this.Task.getAllTasks();
+        this.Task.getLists();
         setInterval(this.Time.getDate, 100);
     },
 }
