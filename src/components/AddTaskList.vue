@@ -6,10 +6,10 @@
                   <span class="material-symbols-outlined">add</span>
                 </div>
                 <div class="ml-3 h-10 w-full mb-3">
-                  <input @keyup.enter="Task.pushTask(coll, id)" type="text" class="bg-black focus:outline-none w-full border-0 focus:ring-0" placeholder="New Task" v-model="Task.new_task.title">
+                  <input @keyup.enter="Task.pushTask()" type="text" class="bg-black focus:outline-none w-full border-0 focus:ring-0" placeholder="New Task" v-model="Task.new_task.title">
                 </div>
                 <div class="h-10">
-                    <span @click="Task.pushTask(coll, id)" class="material-symbols-outlined mx-3">
+                    <span @click="Task.pushTask()" class="material-symbols-outlined mx-3">
                         send
                     </span>
                 </div>
@@ -32,10 +32,6 @@ export default {
     return {
       Task,
     }
-  },
-  props: {
-    coll: String,
-    id: String,
   },
   methods: {
   },

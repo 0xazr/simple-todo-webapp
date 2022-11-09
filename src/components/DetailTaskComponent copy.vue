@@ -7,10 +7,10 @@
             <div class="w-full bg-neutral-700 rounded-sm  px-4 pt-4">
                 <div class="flex items-center">
                     <div class="block mt-1">
-                        <input @click="Task.toggleTaskDone(coll, list_id, id)" type="checkbox" class="w-7 h-7 accent-neutral-300 bg-neutral-700 rounded-full text-neutral-800 focus:ring-0" :checked="Task.detail_task.data.is_done">
+                        <input @click="Task.toggleTaskDone(coll, list_id, id)" type="checkbox" class="w-7 h-7 accent-neutral-300 bg-neutral-700 rounded-full text-neutral-800 focus:ring-0" :checked="this.Task.tasks.find(task => task.id === this.id).is_done">
                     </div>
                     <div class="w-full ml-1 mr-8">
-                        <input type="text" v-model="Task.detail_task.data.title" class="w-full bg-neutral-700 border-0 focus:ring-0" :class="{'line-through': Task.detail_task.data.is_done}">
+                        <input type="text" v-model="Task.detail_task.data.title" class="w-full bg-neutral-700 border-0 focus:ring-0" :class="{'line-through': this.Task.tasks.find(task => task.id === this.id).is_done}">
                     </div>
                     <div class="absolute right-9">
                         <button type="submit" @click="Task.toggleTaskImportant(coll, list_id, id)">
@@ -50,7 +50,7 @@
                 </div>
             </div> -->
             <div class="absolute bottom-3 right-3">
-                <button @click="Task.deleteTask(id)" type="submit">
+                <button @click="Task.deleteTask(coll, list_id, id)" type="submit">
                     <span class="material-symbols-outlined">
                         delete
                     </span>
@@ -78,18 +78,18 @@ export default {
         id: String,
     },
     created() {
-        console.log("detail_task", this.Task.detail_task.data);
+        // console.log(this.Task.detail_task.data);
     },
     watch: {
         "Task.tasks": {
             handler() {
-                this.Task.detail_task.data = this.Task.tasks.find(task => task.id === this.id);
-            }
-        }, "Task.lists": {
-            handler() {
-                let list = this.Task.lists.find(list => list.id === this.list_id);
-                this.Task.detail_task.data = list.tasks.find(task => task.id === this.id);
-                console.log("list : ",list)
+                if(this.coll == "general-task") {
+                    this.Task.detail_task.data = this.Task.tasks.find(task => task.id === this.id);
+                } else {
+                    let list = this.Task.lists.find(list => list.id === this.list_id);
+                    this.Task.detail_task.data = list.tasks.find(task => task.id === this.id);
+                    console.log("list : ",list)
+                }
             }
         }
     }

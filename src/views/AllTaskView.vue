@@ -1,9 +1,11 @@
 <template>
     <div class="relative h-full">
         <div class="grid grid-cols-7">
-            <div class="col-span-5">
-                <h1 class="text-4xl font-bold text-neutral-50">My Day</h1>
-                <h1 class="text-xl">{{Time.date}}</h1>
+            <div class="col-span-5 flex items-center">
+                <span class="material-symbols-outlined text-4xl mr-3">
+                    home
+                </span>
+                <h1 class="text-4xl font-bold text-neutral-50">Tasks</h1>
             </div>
             <!-- <div class="col-start-7 w-full">
                 <div class="relative">
@@ -19,7 +21,12 @@
         </div>
         <div class="mt-7">
             <div v-for="(task, index) in Task.tasks" :key="index">
-                <TaskComponent coll="general-task" :list_id="null" :task="task" v-if="!task.is_done && task.date_created == dayjs().format('YYYY-MM-DD')" />
+                <TaskComponent coll="general-task" :list_id="null" :task="task" v-if="!task.is_done" />
+            </div>
+            <div v-for="list in Task.lists">
+                <div v-for="task in list.tasks">
+                    <TaskComponent coll="custom-list" :list_id="list.id" :task="task" v-if="!task.is_done" />
+                </div>
             </div>
             <div v-if="Task.tasks.length > 0" class="mt-4 w-[9.5rem] px-3 py-2 bg-neutral-700 bg-opacity-70 rounded-lg flex font-semibold">
                 <span class="material-symbols-sharp mr-1 mt-[1px]">
@@ -28,10 +35,15 @@
                 <h1>Completed</h1>
             </div>
             <div v-for="(task, index) in Task.tasks" :key="index">
-                <TaskComponent coll="general-task" :list_id="null" :task="task" v-if="task.is_done && task.date_created == dayjs().format('YYYY-MM-DD')" />
+                <TaskComponent coll="general-task" :list_id="null" :task="task" v-if="task.is_done" />
+            </div>
+            <div v-for="list in Task.lists">
+                <div v-for="task in list.tasks">
+                    <TaskComponent coll="custom-list" :list_id="list.id" :task="task" v-if="task.is_done" />
+                </div>
             </div>
         </div>
-        <AddTask coll="general-task" id="my-day"/>
+        <AddTask coll="general-task" id="all-task"/>
     </div>
     <DetailTaskComponent v-if="Task.detail_task.show_task" :id="Task.detail_task.data.id" coll="general-task" :list_id="null"/>
 </template>
@@ -46,20 +58,19 @@ export default {
     data() {
         const Time = useTime();
         const Task = useTask();
-        const dayjs = require('dayjs');
         return {
             Time,
             Task,
-            dayjs,
         }
     },
     components: {
         TaskComponent,
-        AddTask,
         DetailTaskComponent,
+        AddTask,
     },
     created() {
         this.Task.getAllTasks();
+        this.Task.getLists();
         setInterval(this.Time.getDate, 100);
     },
 }

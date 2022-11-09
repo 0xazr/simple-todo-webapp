@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, doc, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc } from "firebase/firestore"; 
+import { getFirestore, collection, doc, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc, query, where, setDoc } from "firebase/firestore"; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyBgZYJoUhN2if_IeCB-RQB2Hz_yV_ZCfV8",
@@ -27,10 +27,15 @@ export const useApp = defineStore({
 export const useTask = defineStore({
     id: 'Task',
     state: () => ({
+        new_list: {
+            title: '',
+        },
+        lists: [],
         new_task: {
             title: "",
             list: "",
             steps: [],
+            notes: "",
             date_created: "",
             is_important: false,
             is_done: false,
@@ -39,26 +44,122 @@ export const useTask = defineStore({
         detail_task: {
             show_task: false,
             data: {}
-        }
+        },
+        step: "",
+        notes: "",
+        search: "",
     }),
     actions: {
-        getAllTasks() {
-        },
-        async pushTask() {
-            const push = await addDoc(collection(db, "todo-app"), {
-                title: this.new_task.title,
-                list: "",
-                steps: [],
-                date_created: dayjs().format(),
-                is_important: false,
-                is_done: false,
+        // DONT DELETE THIS!! //
+        // Needed for delete firestore document //
+        async deleteCollection(db, collectionPath, batchSize) {
+            const collectionRef = db.collection(collectionPath);
+            const query = collectionRef.orderBy('__name__').limit(batchSize);
+          
+            return new Promise((resolve, reject) => {
+              deleteQueryBatch(db, query, resolve).catch(reject);
             });
-
-            this.new_task.title = "";
-            this.new_task.date_created = "";
         },
-        async getAllTasks() {
-            const snapshot = await onSnapshot(collection(db, "todo-app"), (datas) => {
+        async deleteQueryBatch(db, query, resolve) {
+            const snapshot = await query.get();
+          
+            const batchSize = snapshot.size;
+            if (batchSize === 0) {
+              // When there are no documents left, we are done
+              resolve();
+              return;
+            }
+          
+            // Delete documents in a batch
+            const batch = db.batch();
+            snapshot.docs.forEach((doc) => {
+              batch.delete(doc.ref);
+            });
+            await batch.commit();
+          
+            // Recurse on the next process tick, to avoid
+            // exploding the stack.
+            process.nextTick(() => {
+              deleteQueryBatch(db, query, resolve);
+            });
+        },
+        // End //
+
+
+        async pushTask(coll, id=null) {
+            if(coll == "general-task") {
+                if (id == "important-task") {
+                    await addDoc(collection(db, coll), {
+                        title: this.new_task.title,
+                        list: "",
+                        steps: [],
+                        notes: "",
+                        date_created: "",
+                        is_important: true,
+                        is_done: false,
+                    });
+                } else if (id == "my-day") {
+                    await addDoc(collection(db, coll), {
+                        title: this.new_task.title,
+                        list: "",
+                        steps: [],
+                        notes: "",
+                        date_created: dayjs().format("YYYY-MM-DD"),
+                        is_important: false,
+                        is_done: false,
+                    });
+                } else {
+                    await addDoc(collection(db, coll), {
+                        title: this.new_task.title,
+                        list: "",
+                        steps: [],
+                        notes: "",
+                        date_created: "",
+                        is_important: false,
+                        is_done: false,
+                    });
+                }
+    
+                this.new_task.title = "";
+                this.new_task.date_created = "";
+            } else {
+                // console.log(id);
+                let list = this.lists.find(list => list.id == id);
+                
+                list.tasks.push({
+                    id: crypto.randomUUID(),
+                    title: this.new_task.title,
+                    steps: [],
+                    notes: "",
+                    date_created: dayjs().format("YYYY-MM-DD"),
+                    is_important: false,
+                    is_done: false,
+                })
+                updateDoc(doc(db, "custom-list", id), {
+                    tasks: list.tasks
+                });
+                this.new_task.title = "";
+                this.new_task.date_created = "";
+            }
+        },
+        async newList() {
+            let id = this.new_list.title.toLocaleLowerCase().replace(/ /g, "-");
+            await setDoc(doc(db, "custom-list", id), {
+                title: this.new_list.title,
+                tasks: [],
+            });
+            this.new_list.title = "";
+        },
+        getLists() {
+            onSnapshot(collection(db, "custom-list"), (querySnapshot) => {
+                this.lists = [];
+                querySnapshot.forEach((doc) => {
+                    this.lists.push({id: doc.id, ...doc.data()});
+                });
+            });
+        },
+        getAllTasks() {
+            onSnapshot(collection(db, "general-task"), (datas) => {
                 this.tasks = [];
                 datas.forEach((data) => {
                     this.tasks.push({
@@ -66,27 +167,175 @@ export const useTask = defineStore({
                         ...data.data()
                     });
                 })
-            })
+            });
+            this.closeDetailTask();
         },
-
-        async toggleTaskDone(id) {
-            let task = this.tasks.find(task => task.id === id);
-            await updateDoc(doc(db, "todo-app", id), {
-                is_done: !task.is_done,
-            })
+        getImportantTasks() {
+            const q = query(collection(db, "general-task"), where("is_important", "==", true));
+            onSnapshot(q, (datas) => {
+                this.tasks = [];
+                datas.forEach((data) => {
+                    this.tasks.push({
+                        id: data.id,
+                        ...data.data()
+                    });
+                })
+            });
+            this.closeDetailTask();
         },
-        async deleteAllTasks() {
-            this.tasks.forEach((task) => {
-                deleteDoc(doc(db, "todo-app", task.id));
-            })
+        addStepTask(coll, list_id, id, step) {
+            if (coll == "general-task") {
+                let task = this.tasks.find(task => task.id === id);
+                task.steps.push({
+                    title: step,
+                    is_done: false,
+                });
+                updateDoc(doc(db, "general-task", id), {
+                    steps: task.steps,
+                });
+                this.step = "";
+            } else {
+                let list = this.lists.find(list => list.id === list_id);
+                let task = list.tasks.find(task => task.id === id);
+                task.steps.push({
+                    title: step,
+                    is_done: false,
+                });
+                updateDoc(doc(db, "custom-list", list_id), {
+                    tasks: list.tasks,
+                });
+                this.step = "";
+            }
         },
-        detailTask(id) {
-            this.detail_task.show_task = true;
-            this.detail_task.data = this.tasks.find(task => task.id === id);
+        async toggleTaskDone(coll, list_id, id) {
+            if (coll == "general-task") {
+                let task = this.tasks.find(task => task.id === id);
+                await updateDoc(doc(db, "general-task", id), {
+                    is_done: !task.is_done,
+                });
+                task.steps.forEach((step, index) => {
+                    task.steps[index].is_done = !task.is_done;
+                    updateDoc(doc(db, "general-task", id), {
+                        steps: task.steps,
+                    });
+                })
+            } else {
+                console.log(coll, list_id, id);
+                let list = this.lists.find(list => list.id === list_id);
+                await updateDoc(doc(db, "custom-list", list_id), {
+                    tasks: list.tasks.map((task) => {
+                        if(task.id == id) {
+                            task.is_done = !task.is_done;
+                            task.steps.forEach((step, index) => {
+                                task.steps[index].is_done = !task.is_done;
+                            })
+                        }
+                        return task;
+                    })
+                });
+            }
+        },
+        async toggleTaskImportant(coll, list_id, id) {
+            if (coll == "general-task") {
+                let task = this.tasks.find(task => task.id === id);
+                await updateDoc(doc(db, "general-task", id), {
+                    is_important: !task.is_important,
+                });
+            } else {
+                let list = this.lists.find(list => list.id === list_id);
+                await updateDoc(doc(db, "custom-list", list_id), {
+                    tasks: list.tasks.map((task) => {
+                        if(task.id == id) {
+                            task.is_important = !task.is_important;
+                        }
+                        return task;
+                    })
+                });
+            }
+        },
+        async toggleStepDone(coll, list_id, id, index) {
+            if (coll == "general-task") {
+                let task = this.tasks.find(task => task.id === id);
+                task.steps[index].is_done = !task.steps[index].is_done;
+                await updateDoc(doc(db, "general-task", id), {
+                    steps: task.steps,
+                });
+            } else {
+                let list = this.lists.find(list => list.id === list_id);
+                let tasks = list.tasks;
+                tasks.find(task => task.id === id).steps[index].is_done = !tasks.find(task => task.id === id).steps[index].is_done;
+                await updateDoc(doc(db, "custom-list", list_id), {
+                    tasks: tasks
+                });
+            }
+        },
+        async removeStep(coll, list_id, id, index) {
+            if (coll == "general-task") {
+                let task = this.tasks.find(task => task.id === id);
+                task.steps.splice(index, 1);
+                await updateDoc(doc(db, "general-task", id), {
+                    steps: task.steps,
+                });
+            } else {
+                let list = this.lists.find(list => list.id === list_id);
+                let tasks = list.tasks;
+                tasks.find(task => task.id === id).steps.splice(index, 1);
+                await updateDoc(doc(db, "custom-list", list_id), {
+                    tasks: tasks
+                });
+            }
+        },
+        // async deleteAllTasks(coll = "general-task", list_id=null) {
+        //     if (coll === "general-task") {
+        //         this.tasks.forEach((task) => {
+        //             deleteDoc(doc(db, "general-task", task.id));
+        //         });
+        //         this.closeDetailTask();
+        //     } else {
+        //         let list = this.lists.find(list => list.id === list_id);
+        //         list.tasks.forEach((task) => {
+        //             deleteDoc(doc(db, "custom-list", list_id));
+        //         });
+        //         this.closeDetailTask();
+        //     }
+        // },
+        async deleteTask(id) {
+            if (this.tasks.find(task => task.id === id)) {
+                deleteDoc(doc(db, "general-task", id));
+                this.detail_task.show_task = false;
+                this.detail_task.data = {};
+            } else {
+                this.lists.forEach((list) => {
+                    let task_index = list.tasks.findIndex(task => task.id === id);
+                    list.tasks.splice(task_index, 1);
+                    console.log(list.tasks);
+                    updateDoc(doc(db, "custom-list", list.id), {
+                        tasks: list.tasks,
+                    });
+                    this.detail_task.show_task = false;
+                    this.detail_task.data = {};
+                });
+            }
+        },
+        detailTask(coll, list_id, id) {
+            console.log(coll, list_id, id);
+            if (coll == "general-task") {
+                this.detail_task.show_task = true;
+                this.detail_task.data = this.tasks.find(task => task.id === id);
+                console.log(this.detail_task.data);
+            } else {
+                let list = this.lists.find(list => list.id === list_id);
+                this.detail_task.show_task = true;
+                this.detail_task.data = list.tasks.find(task => task.id === id);
+                console.log(this.detail_task.data);
+            }
         },
         closeDetailTask() {
             this.detail_task.show_task = false;
             this.detail_task.data = {};
+        },
+        searchTask() {
+            this.router.push("/search");
         }
     }
 })
